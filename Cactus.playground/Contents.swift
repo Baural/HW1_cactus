@@ -27,14 +27,12 @@ class SessionManager {
         sessionDelegate.showSessionStarted()
         sessionDelegate.showTimeLeft(secondsLeft: session.durationInSeconds)
 
-        
         var secondsLeft = session.durationInSeconds
-    
-       
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             secondsLeft -= 1
             self.sessionDelegate.showTimeLeft(secondsLeft: secondsLeft)
-            if secondsLeft == 1 {
+            
+            if secondsLeft == 0 {
                 SessionsStorage.shared.add(session: session)
                 self.sessionDelegate.showSessionEnded()
                 
@@ -44,6 +42,11 @@ class SessionManager {
         }
     }
     
+    func stopSession(){
+        self.sessionDelegate.showSessionEnded()
+        self.timer?.invalidate()
+        self.timer = nil
+    }
 }
 
 class SessionsStorage {
@@ -56,18 +59,18 @@ class SessionsStorage {
     }
 }
 
-class BreakView: SessionManagerDelegate {
+class SessionView: SessionManagerDelegate {
     var sessionManager: SessionManager?
     
-
-    
-    func userStartedBreak(durationInSeconds: Int) {
+    func userStartedSession(durationInSeconds: Int) {
         sessionManager?.startSession(session: Session(durationInSeconds: durationInSeconds))
     }
-
+    func userCancelledSession() {
+        sessionManager?.stopSession()
+    }
     
     func showSessionStarted() {
-        print("break started")
+        print("sessionStarted")
     }
     
     func showTimeLeft(secondsLeft: Int) {
@@ -75,13 +78,16 @@ class BreakView: SessionManagerDelegate {
     }
     
     func showSessionEnded() {
-        print("break ended")
+        print("sessionEnded")
     }
 }
 
-let breakView = BreakView()
-breakView.sessionManager = SessionManager(sessionDelegate: breakView)
+let sessionView = SessionView()
+sessionView.sessionManager = SessionManager(sessionDelegate: sessionView)
 
-breakView.userStartedBreak(durationInSeconds: 5)
+sessionView.userStartedSession(durationInSeconds: 10)
 
+DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(3)) {
+     sessionView.userCancelledSession()
+}
 
